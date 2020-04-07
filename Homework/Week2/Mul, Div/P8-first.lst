@@ -1,0 +1,57 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; a,b,c - byte, d - word
+    14                                      ; (100*a+d+5-75*b)/(c-5)
+    15 00000000 02                          a db 0x2
+    16 00000001 01                          b db 0x1
+    17 00000002 0A                          c db 0xA
+    18 00000003 03                          d db 0x3
+    19                                      
+    20 00000004 1B                          result db 0x1b
+    21 00000005 00                          restul db 0x0
+    22                                  
+    23                                  ; our code starts here
+    24                                  segment code use32 class=code
+    25                                      start:
+    26                                          ; perform a * 100 in 
+    27 00000000 B064                            mov al, 0x64
+    28 00000002 F625[00000000]                  mul byte [a]
+    29                                          ; mov al, ax      ; move the result back in al (don't need it)
+    30                                          
+    31                                          ; add to d + 5 to al
+    32 00000008 0205[03000000]                  add al, [d]
+    33 0000000E 0405                            add al, 5
+    34 00000010 88C2                            mov dl, al      ; save dl = al = 208 = 0xD0
+    35                                          
+    36                                          ; - 75*b
+    37 00000012 B04B                            mov al, 75
+    38 00000014 F625[01000000]                  mul byte [b]    ; al = 75 = 4B
+    39 0000001A 28C2                            sub dl, al      ; dl = dl - al      = 208 - 75 = 133 = 0x85
+    40                                          
+    41                                          ;
+    42 0000001C A0[02000000]                    mov al, [c]     ; al = 10
+    43 00000021 2C05                            sub al, 5       ; al = 5 = 0x5
+    44                                          
+    45 00000023 88C3                            mov bl, al      ;save al
+    46                                          
+    47                                          ; dl = first parantheses    bl = second parantheses
+    48 00000025 66B80000                        mov ax, 0
+    49 00000029 88D0                            mov al, dl
+    50 0000002B F6F3                            div bl
+    51                                          
+    52 0000002D A2[04000000]                    mov [result], al ;= 26 = 0x1A
+    53 00000032 8825[05000000]                  mov [restul], ah
+    54                                      
+    55                                          ; exit(0)
+    56 00000038 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    57 0000003A FF15[00000000]                  call    [exit]       ; call exit to terminate the program

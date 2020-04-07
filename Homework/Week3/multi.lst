@@ -1,0 +1,70 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; ...
+    14                                      ; 1/a+200*b-c/(d+1)+x/e; a,b-word; c,d-byte; e-doubleword; x-qword
+    15                                      ;  1 + 400 - 2 + 4 = 403
+    16                                          
+    17 00000000 0100                        a dw 1     ; ax
+    18 00000002 0200                        b dw 2      ; ax
+    19 00000004 06                          c db 6      ; al
+    20 00000005 02                          d db 2      ; al
+    21 00000006 19000000                    e dd 25    ; eax
+    22 0000000A 6400000000000000            x dq 100     ; edx:eax
+    23 00000012 C800                        co dw 200
+    24                                      
+    25                                      
+    26                                  ; our code starts here
+    27                                  segment code use32 class=code
+    28                                      start:
+    29                                          ; 1/a+200*b-c/(d+1)+x/e; a,b-word; c,d-byte; e-doubleword; x-qword
+    30                                          
+    31 00000000 66B80100                        mov ax, 1
+    32 00000004 66BA0000                        mov dx, 0
+    33 00000008 66F73D[00000000]                idiv word [a]   ; ax = 1/a
+    34 0000000F 98                              cwde
+    35 00000010 99                              cdq
+    36 00000011 89C3                            mov ebx, eax
+    37 00000013 89D1                            mov ecx, edx
+    38                                          
+    39 00000015 66A1[02000000]                  mov ax, [b]
+    40 0000001B 98                              cwde
+    41 0000001C F72D[12000000]                  imul dword [co]
+    42                                          
+    43                                          
+    44 00000022 01C3                            add ebx, eax
+    45 00000024 11D1                            adc ecx, edx
+    46                                          
+    47 00000026 A0[05000000]                    mov al, [d]
+    48 0000002B 0401                            add al, 1
+    49 0000002D A2[05000000]                    mov [d], al
+    50 00000032 A0[04000000]                    mov al, [c]
+    51 00000037 6698                            cbw
+    52 00000039 F63D[05000000]                  idiv byte [d]
+    53 0000003F 6698                            cbw
+    54 00000041 98                              cwde
+    55 00000042 99                              cdq
+    56 00000043 01C3                            add ebx, eax
+    57 00000045 11D1                            adc ecx, edx
+    58                                          
+    59 00000047 A1[0A000000]                    mov eax, dword [x]
+    60 0000004C 8B15[0E000000]                  mov edx, dword [x+4]
+    61                                          
+    62 00000052 F73D[06000000]                  idiv dword [e]
+    63                                          
+    64 00000058 01C3                            add ebx, eax
+    65 0000005A 11D1                            adc ecx, edx
+    66                                          
+    67                                      
+    68                                          ; exit(0)
+    69 0000005C 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    70 0000005E FF15[00000000]                  call    [exit]       ; call exit to terminate the program

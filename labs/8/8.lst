@@ -1,0 +1,47 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  extern printf
+    11                                  import printf msvcrt.dll
+    12                                  
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15                                      ; ...
+    16 00000000 010000000200000003-         a dd 1, 2, 3, 4, 5
+    16 00000009 000000040000000500-
+    16 00000012 0000               
+    17                                      len equ ($-a)/4
+    18 00000014 256400                      format db "%d", 0
+    19                                  
+    20                                  ; our code starts here
+    21                                  segment code use32 class=code
+    22                                      start:
+    23 00000000 B905000000                          mov ecx, len
+    24 00000005 E321                                jecxz final
+    25 00000007 BE00000000                          mov esi, 0
+    26                                              
+    27                                              bucla:
+    28 0000000C 8B86[00000000]                          mov eax, [a + esi]
+    29                                                  
+    30 00000012 60                                      pushad ; push al extended registers
+    31                                                  ; printf(format, eax)
+    32 00000013 50                                      push eax
+    33 00000014 68[14000000]                            push format
+    34 00000019 FF15[00000000]                          call [printf]
+    35 0000001F 83C408                                  add esp, 4 * 2    ;eliberam stiva
+    36                                                  
+    37 00000022 61                                      popad ; pop all extended registers
+    38                                                  
+    39 00000023 83C604                                  add esi, 4
+    40 00000026 E2E4                                loop bucla
+    41                                              
+    42                                          final:
+    43                                          ; exit(0)
+    44 00000028 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    45 0000002A FF15[00000000]                  call    [exit]       ; call exit to terminate the program

@@ -1,0 +1,49 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; ...
+    14 00000000 010203070405                a db 1, 2, 3, 7, 4, 5
+    15                                      len equ ($ - a)
+    16                                  
+    17                                  ; our code starts here
+    18                                  segment code use32 class=code
+    19                                      start:
+    20                                          ; ...
+    21 00000000 BA00000000                      mov edx, 0 ; ok = false
+    22                                          bucla_while:
+    23 00000005 BA01000000                          mov edx, 1 ; ok true
+    24 0000000A BE00000000                          mov esi, 0 ; esi = i = 0
+    25                                              
+    26                                              bucla_for:
+    27                                                  ; a[i] > a[i+1]
+    28 0000000F 8A86[00000000]                          mov al, [a + esi]       ;al = a[i]
+    29 00000015 3A86[01000000]                          cmp al, [a + esi + 1]
+    30 0000001B 7F02                                    jg interschimba
+    31 0000001D EB17                                    jmp mai_departe
+    32                                                  
+    33                                                  interschimba:
+    34 0000001F 8AA6[01000000]                              mov ah, [a + esi + 1]
+    35 00000025 8886[01000000]                              mov [a + esi + 1], al
+    36 0000002B 88A6[00000000]                              mov [a + esi], ah
+    37 00000031 BA00000000                                  mov edx, 0  ; ok = false
+    38                                                  
+    39                                                  mai_departe:
+    40 00000036 46                                          inc esi
+    41 00000037 83FE05                                      cmp esi, (len-1)
+    42 0000003A 7CD3                                        jl bucla_for
+    43                                                  
+    44 0000003C 83FA00                              cmp edx, 0
+    45 0000003F 74C4                                je bucla_while
+    46                                      
+    47                                          ; exit(0)
+    48 00000041 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    49 00000043 FF15[00000000]                  call    [exit]       ; call exit to terminate the program
